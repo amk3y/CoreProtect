@@ -2,6 +2,8 @@ package net.coreprotect.spigot;
 
 import java.util.regex.Matcher;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.bungeecord.BungeeComponentSerializer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 
@@ -43,9 +45,15 @@ public class SpigotHandler extends SpigotAdapter implements SpigotInterface {
                     component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, data[1]));
                     SpigotAdapter.ADAPTER.setHoverEvent(component, Util.hoverCommandFilter(data[1]));
                     message.addExtra(component);
-                }
-                else if (data[0].equals(Chat.COMPONENT_POPUP)) {
+                } else if (data[0].equals(Chat.COMPONENT_POPUP)) {
                     SpigotAdapter.ADAPTER.addHoverComponent(message, data);
+                } else if (data[0].equals(Chat.COMPONENT_TRANSLATABLE)) {
+                    BungeeComponentSerializer serializer = BungeeComponentSerializer.get();
+                    var component = Component.text("")
+                            .append(Component.translatable(data[2]))
+                            .hoverEvent(Component.text(data[1]));
+                    for (var cp : serializer.serialize(component))
+                        message.addExtra(cp);
                 }
             }
             else {

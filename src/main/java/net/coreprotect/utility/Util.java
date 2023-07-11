@@ -108,6 +108,22 @@ public class Util extends Queue {
         return name;
     }
 
+    public static String getTranslatable(Block block){
+        return getTranslatable(block.getType());
+    }
+    public static String getTranslatable(Material material){
+        return getTranslatable(material.translationKey(), material.translationKey());
+    }
+    public static String getTranslatable(EntityType entityType){
+        return getTranslatable(entityType.translationKey(), entityType.translationKey());
+    }
+
+    public static String getTranslatable(String key, String reveal){
+        StringBuilder builder = new StringBuilder(Chat.COMPONENT_TAG_OPEN + Chat.COMPONENT_TRANSLATABLE);
+        builder.append("|").append(reveal).append("|").append(key).append(Chat.COMPONENT_TAG_CLOSE);
+        return builder.toString();
+    }
+
     public static int getBlockId(Material material) {
         if (material == null) {
             material = Material.AIR;
