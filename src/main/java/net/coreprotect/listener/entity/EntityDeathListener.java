@@ -20,6 +20,7 @@ import org.bukkit.entity.AbstractHorse;
 import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Bee;
 import org.bukkit.entity.Cat;
 import org.bukkit.entity.ChestedHorse;
 import org.bukkit.entity.Creeper;
@@ -66,6 +67,7 @@ import net.coreprotect.CoreProtect;
 import net.coreprotect.bukkit.BukkitAdapter;
 import net.coreprotect.config.Config;
 import net.coreprotect.consumer.Queue;
+import net.coreprotect.thread.Scheduler;
 import net.coreprotect.utility.serialize.ItemMetaHandler;
 
 public final class EntityDeathListener extends Queue implements Listener {
@@ -95,13 +97,13 @@ public final class EntityDeathListener extends Queue implements Listener {
             }
         }
 
-        Bukkit.getScheduler().runTask(CoreProtect.getInstance(), () -> {
-            for (LivingEntity entity : entityList) {
+        for (LivingEntity entity : entityList) {
+            Scheduler.runTask(CoreProtect.getInstance(), () -> {
                 if (entity != null && entity.isDead()) {
                     logEntityDeath(entity, "#command");
                 }
-            }
-        });
+            }, entity);
+        }
     }
 
     protected static void logEntityDeath(LivingEntity entity, String e) {
@@ -495,6 +497,12 @@ public final class EntityDeathListener extends Queue implements Listener {
                         info.add(llama.getColor());
                     }
                 }
+            }
+            if (entity instanceof Bee) {
+                Bee bee = (Bee) entity;
+                info.add(bee.getAnger());
+                info.add(bee.hasNectar());
+                info.add(bee.hasStung());
             }
             else {
                 BukkitAdapter.ADAPTER.getEntityMeta(entity, info);

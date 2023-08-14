@@ -1,6 +1,9 @@
 package net.coreprotect.paper;
 
+import org.bukkit.Location;
 import org.bukkit.Server;
+import org.bukkit.block.Sign;
+import org.bukkit.entity.Entity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 
@@ -18,6 +21,7 @@ public class PaperAdapter implements PaperInterface {
     public static final int PAPER_V1_17 = BukkitAdapter.BUKKIT_V1_17;
     public static final int PAPER_V1_18 = BukkitAdapter.BUKKIT_V1_18;
     public static final int PAPER_V1_19 = BukkitAdapter.BUKKIT_V1_19;
+    public static final int PAPER_V1_20 = BukkitAdapter.BUKKIT_V1_20;
 
     public static void loadAdapter() {
         int paperVersion = ConfigHandler.SERVER_VERSION;
@@ -27,19 +31,24 @@ public class PaperAdapter implements PaperInterface {
 
         switch (paperVersion) {
             case PAPER_UNAVAILABLE:
-            case PAPER_V1_13:
-            case PAPER_V1_14:
                 PaperAdapter.ADAPTER = new PaperAdapter();
                 break;
+            case PAPER_V1_13:
+            case PAPER_V1_14:
             case PAPER_V1_15:
                 PaperAdapter.ADAPTER = new PaperHandler();
                 break;
             case PAPER_V1_16:
+                PaperAdapter.ADAPTER = new Paper_v1_16();
+                break;
             case PAPER_V1_17:
             case PAPER_V1_18:
             case PAPER_V1_19:
+                PaperAdapter.ADAPTER = new Paper_v1_17();
+                break;
+            case PAPER_V1_20:
             default:
-                PaperAdapter.ADAPTER = new Paper_v1_16();
+                PaperAdapter.ADAPTER = new Paper_v1_20();
                 break;
         }
     }
@@ -52,6 +61,16 @@ public class PaperAdapter implements PaperInterface {
     @Override
     public boolean isStopping(Server server) {
         return false;
+    }
+
+    @Override
+    public String getLine(Sign sign, int line) {
+        return BukkitAdapter.ADAPTER.getLine(sign, line);
+    }
+
+    @Override
+    public void teleportAsync(Entity entity, Location location) {
+        entity.teleport(location);
     }
 
 }

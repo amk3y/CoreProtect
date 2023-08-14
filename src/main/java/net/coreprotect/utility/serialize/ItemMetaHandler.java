@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.bukkit.Color;
+import org.bukkit.Bukkit;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
@@ -23,9 +23,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.inventory.meta.SuspiciousStewMeta;
 import org.bukkit.potion.PotionEffect;
 
 import net.coreprotect.bukkit.BukkitAdapter;
+import net.coreprotect.utility.Color;
 import net.coreprotect.utility.Util;
 
 public class ItemMetaHandler {
@@ -92,21 +94,25 @@ public class ItemMetaHandler {
         return itemMeta.getEnchants();
     }
 
-    public static String getEnchantments(ItemStack item) {
-        StringBuilder result = new StringBuilder();
-        Map<Enchantment, Integer> enchantments = getEnchantments(item.getItemMeta());
+    public static List<String> getEnchantments(ItemStack item, String displayName) {
+        List<String> result = new ArrayList<>();
+        ItemMeta itemMeta = item.getItemMeta();
+        Map<Enchantment, Integer> enchantments = getEnchantments(itemMeta);
 
         for (Entry<Enchantment, Integer> entry : enchantments.entrySet()) {
             Enchantment enchantment = entry.getKey();
             Integer level = entry.getValue();
 
-            if (result.length() > 0) {
-                result.append("\n");
-            }
-            result.append(getEnchantmentName(enchantment, level));
+            result.add(getEnchantmentName(enchantment, level));
         }
 
-        return result.toString();
+        if (itemMeta.hasLore()) {
+            for (String lore : itemMeta.getLore()) {
+                result.add(Color.DARK_PURPLE + Color.ITALIC + lore);
+            }
+        }
+
+        return result;
     }
 
     public static List<List<Map<String, Object>>> seralize(ItemStack item, Material type, String faceData, int slot) {
@@ -133,7 +139,7 @@ public class ItemMetaHandler {
                 LeatherArmorMeta meta = (LeatherArmorMeta) itemMeta;
                 LeatherArmorMeta subMeta = meta.clone();
 
-                meta.setColor(null);
+                meta.setColor(Bukkit.getServer().getItemFactory().getDefaultLeatherColor());
                 list.add(meta.serialize());
                 metadata.add(list);
 
@@ -232,6 +238,21 @@ public class ItemMetaHandler {
                     metadata.add(list);
                 }
             }
+            else if (itemMeta instanceof SuspiciousStewMeta) {
+                SuspiciousStewMeta meta = (SuspiciousStewMeta) itemMeta;
+                SuspiciousStewMeta subMeta = meta.clone();
+                meta.clearCustomEffects();
+                list.add(meta.serialize());
+                metadata.add(list);
+
+                if (subMeta.hasCustomEffects()) {
+                    for (PotionEffect effect : subMeta.getCustomEffects()) {
+                        list = new ArrayList<>();
+                        list.add(effect.serialize());
+                        metadata.add(list);
+                    }
+                }
+            }
             else if (!BukkitAdapter.ADAPTER.getItemMeta(itemMeta, list, metadata, slot)) {
                 list.add(itemMeta.serialize());
                 metadata.add(list);
@@ -270,11 +291,11 @@ public class ItemMetaHandler {
         List<Map<String, Object>> fadeList = new ArrayList<>();
         List<Map<String, Object>> list = new ArrayList<>();
 
-        for (Color color : effect.getColors()) {
+        for (org.bukkit.Color color : effect.getColors()) {
             colorList.add(color.serialize());
         }
 
-        for (Color color : effect.getFadeColors()) {
+        for (org.bukkit.Color color : effect.getFadeColors()) {
             fadeList.add(color.serialize());
         }
 

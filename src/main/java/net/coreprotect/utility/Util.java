@@ -28,6 +28,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.block.CommandBlock;
+import org.bukkit.block.Jukebox;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.data.BlockData;
@@ -58,6 +59,7 @@ import net.coreprotect.database.Rollback;
 import net.coreprotect.language.Phrase;
 import net.coreprotect.model.BlockGroup;
 import net.coreprotect.thread.CacheHandler;
+import net.coreprotect.thread.Scheduler;
 import net.coreprotect.utility.serialize.ItemMetaHandler;
 import net.coreprotect.worldedit.CoreProtectEditSessionEvent;
 
@@ -281,6 +283,51 @@ public class Util extends Queue {
         return message.toString();
     }
 
+    public static String getEnchantments(byte[] metadata, int type, int amount) {
+        if (metadata == null) {
+            return "";
+        }
+
+        ItemStack item = new ItemStack(Util.getType(type), amount);
+        item = (ItemStack) Rollback.populateItemStack(item, metadata)[2];
+        String displayName = item.hasItemMeta() && item.getItemMeta().hasDisplayName() ? item.getItemMeta().getDisplayName() : "";
+        StringBuilder message = new StringBuilder(Color.ITALIC + displayName + Color.GREY);
+
+        List<String> enchantments = ItemMetaHandler.getEnchantments(item, displayName);
+        for (String enchantment : enchantments) {
+            if (message.length() > 0) {
+                message.append("\n");
+            }
+            message.append(enchantment);
+        }
+
+        if (!displayName.isEmpty()) {
+            message.insert(0, enchantments.isEmpty() ? Color.WHITE : Color.AQUA);
+        }
+        else if (!enchantments.isEmpty()) {
+            String name = Util.capitalize(item.getType().name().replace("_", " "), true);
+            message.insert(0, Color.AQUA + Color.ITALIC + name);
+        }
+
+        return message.toString();
+    }
+
+    public static String createTooltip(String phrase, String tooltip) {
+        if (tooltip.isEmpty()) {
+            return phrase;
+        }
+
+        StringBuilder message = new StringBuilder(Chat.COMPONENT_TAG_OPEN + Chat.COMPONENT_POPUP);
+
+        // tooltip
+        message.append("|" + tooltip + "|");
+
+        // chat output
+        message.append(phrase);
+
+        return message.append(Chat.COMPONENT_TAG_CLOSE).toString();
+    }
+
     public static String hoverCommandFilter(String string) {
         StringBuilder command = new StringBuilder();
 
@@ -426,14 +473,16 @@ public class Util extends Queue {
         try {
             int c1 = 0;
             for (ItemStack o1 : items) {
-                int c2 = 0;
-                for (ItemStack o2 : items) {
-                    if (o1 != null && o2 != null && c2 > c1 && o1.isSimilar(o2) && !Util.isAir(o1.getType())) { // Ignores amount
-                        int namount = o1.getAmount() + o2.getAmount();
-                        o1.setAmount(namount);
-                        o2.setAmount(0);
+                if (o1 != null && o1.getAmount() > 0) {
+                    int c2 = 0;
+                    for (ItemStack o2 : items) {
+                        if (o2 != null && c2 > c1 && o1.isSimilar(o2) && !Util.isAir(o1.getType())) { // Ignores amount
+                            int namount = o1.getAmount() + o2.getAmount();
+                            o1.setAmount(namount);
+                            o2.setAmount(0);
+                        }
+                        c2++;
                     }
-                    c2++;
                 }
                 c1++;
             }
@@ -577,7 +626,10 @@ public class Util extends Queue {
     }
 
     public static ItemStack[] getContainerState(ItemStack[] array) {
-        ItemStack[] result = array.clone();
+        ItemStack[] result = array == null ? null : array.clone();
+        if (result == null) {
+            return result;
+        }
 
         int count = 0;
         for (ItemStack itemStack : array) {
@@ -735,6 +787,10 @@ public class Util extends Queue {
                     ItemFrame entity = (ItemFrame) container;
                     contents = Util.getItemFrameItem(entity);
                 }
+                else if (type == Material.JUKEBOX) {
+                    Jukebox blockState = (Jukebox) ((Block) container).getState();
+                    contents = Util.getJukeboxItem(blockState);
+                }
                 else {
                     Block block = (Block) container;
                     Inventory inventory = Util.getContainerInventory(block.getState(), true);
@@ -812,7 +868,22 @@ public class Util extends Queue {
         return contents;
     }
 
+    public static ItemStack[] getJukeboxItem(Jukebox blockState) {
+        ItemStack[] contents = null;
+        try {
+            contents = new ItemStack[] { blockState.getRecord() };
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return contents;
+    }
+
     public static int getEntityId(EntityType type) {
+        if (type == null) {
+            return -1;
+        }
+
         return getEntityId(type.name(), true);
     }
 
@@ -1157,22 +1228,7 @@ public class Util extends Queue {
             return material;
         }
 
-        switch (material) {
-            case WHEAT:
-                material = Material.WHEAT_SEEDS;
-                break;
-            case PUMPKIN_STEM:
-                material = Material.PUMPKIN_SEEDS;
-                break;
-            case MELON_STEM:
-                material = Material.MELON_SEEDS;
-                break;
-            case BEETROOTS:
-                material = Material.BEETROOT_SEEDS;
-                break;
-            default:
-        }
-
+        material = BukkitAdapter.ADAPTER.getPlantSeeds(material);
         if (material.name().contains("WALL_")) {
             material = Material.valueOf(material.name().replace("WALL_", ""));
         }
@@ -1228,6 +1284,17 @@ public class Util extends Queue {
     public static boolean isPaper() {
         try {
             Class.forName("com.destroystokyo.paper.PaperConfig");
+        }
+        catch (Exception e) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static boolean isFolia() {
+        try {
+            Class.forName("io.papermc.paper.threadedregions.ThreadedRegionizer");
         }
         catch (Exception e) {
             return false;
@@ -1476,7 +1543,7 @@ public class Util extends Queue {
     }
 
     public static void updateBlock(final BlockState block) {
-        Bukkit.getServer().getScheduler().runTask(CoreProtect.getInstance(), () -> {
+        Scheduler.runTask(CoreProtect.getInstance(), () -> {
             try {
                 if (block.getBlockData() instanceof Waterlogged) {
                     Block currentBlock = block.getBlock();
@@ -1489,7 +1556,7 @@ public class Util extends Queue {
             catch (Exception e) {
                 e.printStackTrace();
             }
-        });
+        }, block.getLocation());
     }
 
     public static void updateInventory(Player player) {
@@ -1570,4 +1637,23 @@ public class Util extends Queue {
                 return isInventory ? 2 : 1;
         }
     }
+
+    public static int getSignData(boolean frontGlowing, boolean backGlowing) {
+        if (frontGlowing && backGlowing) {
+            return 3;
+        }
+        else if (backGlowing) {
+            return 2;
+        }
+        else if (frontGlowing) {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    public static boolean isSideGlowing(boolean isFront, int data) {
+        return ((isFront && (data == 1 || data == 3)) || (!isFront && (data == 2 || data == 3)));
+    }
+
 }

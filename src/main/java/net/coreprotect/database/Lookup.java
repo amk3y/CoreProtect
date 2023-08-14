@@ -1,5 +1,6 @@
 package net.coreprotect.database;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public class Lookup extends Queue {
                             results[newId] = (String) map[i];
                         }
                     }
-                    else if (i == 13 && map[i] instanceof Byte[]) {
+                    else if (i == 13 && map[i] instanceof byte[]) {
                         results[newId] = Util.byteDataToString((byte[]) map[i], (int) map[6]);
                     }
                     else if (i > 0) { // skip rowid
@@ -64,6 +65,9 @@ public class Lookup extends Queue {
                         }
                         else if (map[i] instanceof String) {
                             results[newId] = (String) map[i];
+                        }
+                        else if (map[i] instanceof byte[]) {
+                            results[newId] = new String((byte[]) map[i], StandardCharsets.ISO_8859_1);
                         }
                     }
                 }
@@ -187,33 +191,62 @@ public class Lookup extends Queue {
                     int resultX = results.getInt("x");
                     int resultY = results.getInt("y");
                     int resultZ = results.getInt("z");
+                    boolean isFront = results.getInt("face") == 0;
                     String line1 = results.getString("line_1");
                     String line2 = results.getString("line_2");
                     String line3 = results.getString("line_3");
                     String line4 = results.getString("line_4");
+                    String line5 = results.getString("line_5");
+                    String line6 = results.getString("line_6");
+                    String line7 = results.getString("line_7");
+                    String line8 = results.getString("line_8");
 
                     StringBuilder message = new StringBuilder();
-                    if (line1 != null && line1.length() > 0) {
+                    if (isFront && line1 != null && line1.length() > 0) {
                         message.append(line1);
                         if (!line1.endsWith(" ")) {
                             message.append(" ");
                         }
                     }
-                    if (line2 != null && line2.length() > 0) {
+                    if (isFront && line2 != null && line2.length() > 0) {
                         message.append(line2);
                         if (!line2.endsWith(" ")) {
                             message.append(" ");
                         }
                     }
-                    if (line3 != null && line3.length() > 0) {
+                    if (isFront && line3 != null && line3.length() > 0) {
                         message.append(line3);
                         if (!line3.endsWith(" ")) {
                             message.append(" ");
                         }
                     }
-                    if (line4 != null && line4.length() > 0) {
+                    if (isFront && line4 != null && line4.length() > 0) {
                         message.append(line4);
                         if (!line4.endsWith(" ")) {
+                            message.append(" ");
+                        }
+                    }
+                    if (!isFront && line5 != null && line5.length() > 0) {
+                        message.append(line5);
+                        if (!line5.endsWith(" ")) {
+                            message.append(" ");
+                        }
+                    }
+                    if (!isFront && line6 != null && line6.length() > 0) {
+                        message.append(line6);
+                        if (!line6.endsWith(" ")) {
+                            message.append(" ");
+                        }
+                    }
+                    if (!isFront && line7 != null && line7.length() > 0) {
+                        message.append(line7);
+                        if (!line7.endsWith(" ")) {
+                            message.append(" ");
+                        }
+                    }
+                    if (!isFront && line8 != null && line8.length() > 0) {
+                        message.append(line8);
+                        if (!line8.endsWith(" ")) {
                             message.append(" ");
                         }
                     }
@@ -592,7 +625,7 @@ public class Lookup extends Queue {
             }
 
             if (actionList.contains(10)) {
-                queryBlock = queryBlock + " action = '1' AND (LENGTH(line_1) > 0 OR LENGTH(line_2) > 0 OR LENGTH(line_3) > 0 OR LENGTH(line_4) > 0) AND";
+                queryBlock = queryBlock + " action = '1' AND (LENGTH(line_1) > 0 OR LENGTH(line_2) > 0 OR LENGTH(line_3) > 0 OR LENGTH(line_4) > 0 OR LENGTH(line_5) > 0 OR LENGTH(line_6) > 0 OR LENGTH(line_7) > 0 OR LENGTH(line_8) > 0) AND";
             }
 
             if (queryBlock.length() > 0) {
@@ -645,7 +678,7 @@ public class Lookup extends Queue {
             }
             else if (actionList.contains(10)) {
                 queryTable = "sign";
-                rows = "rowid as id,time,user,wid,x,y,z,line_1,line_2,line_3,line_4";
+                rows = "rowid as id,time,user,wid,x,y,z,face,line_1,line_2,line_3,line_4,line_5,line_6,line_7,line_8";
             }
             else if (actionList.contains(11)) {
                 queryTable = "item";

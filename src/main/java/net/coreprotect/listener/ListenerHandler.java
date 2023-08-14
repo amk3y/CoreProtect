@@ -15,6 +15,7 @@ import net.coreprotect.listener.block.BlockIgniteListener;
 import net.coreprotect.listener.block.BlockPistonListener;
 import net.coreprotect.listener.block.BlockPlaceListener;
 import net.coreprotect.listener.block.BlockSpreadListener;
+import net.coreprotect.listener.block.CampfireStartListener;
 import net.coreprotect.listener.channel.PluginChannelHandshakeListener;
 import net.coreprotect.listener.channel.PluginChannelListener;
 import net.coreprotect.listener.entity.CreatureSpawnListener;
@@ -52,6 +53,7 @@ import net.coreprotect.listener.world.ChunkPopulateListener;
 import net.coreprotect.listener.world.LeavesDecayListener;
 import net.coreprotect.listener.world.PortalCreateListener;
 import net.coreprotect.listener.world.StructureGrowListener;
+import net.coreprotect.paper.listener.BlockPreDispenseListener;
 import net.coreprotect.paper.listener.PaperChatListener;
 
 public final class ListenerHandler {
@@ -59,6 +61,15 @@ public final class ListenerHandler {
     public ListenerHandler(CoreProtect plugin) {
 
         PluginManager pluginManager = plugin.getServer().getPluginManager();
+
+        // Paper Listeners / Fallbacks (Block Listeners)
+        try {
+            Class.forName("io.papermc.paper.event.block.BlockPreDispenseEvent"); // Paper 1.16+
+            pluginManager.registerEvents(new BlockPreDispenseListener(), plugin);
+        }
+        catch (Exception e) {
+            BlockPreDispenseListener.useBlockPreDispenseEvent = false;
+        }
 
         // Block Listeners
         pluginManager.registerEvents(new BlockBreakListener(), plugin);
@@ -73,6 +84,13 @@ public final class ListenerHandler {
         pluginManager.registerEvents(new BlockPistonListener(), plugin);
         pluginManager.registerEvents(new BlockPlaceListener(), plugin);
         pluginManager.registerEvents(new BlockSpreadListener(), plugin);
+        try {
+            Class.forName("org.bukkit.event.block.CampfireStartEvent"); // Bukkit 1.20+
+            pluginManager.registerEvents(new CampfireStartListener(), plugin);
+        }
+        catch (Exception e) {
+            CampfireStartListener.useCampfireStartEvent = false;
+        }
 
         // Entity Listeners
         pluginManager.registerEvents(new CreatureSpawnListener(), plugin);
@@ -87,6 +105,15 @@ public final class ListenerHandler {
         pluginManager.registerEvents(new HangingPlaceListener(), plugin);
         pluginManager.registerEvents(new HangingBreakListener(), plugin);
         pluginManager.registerEvents(new HangingBreakByEntityListener(), plugin);
+
+        // Paper Listeners / Fallbacks (Player Listeners)
+        try {
+            Class.forName("net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer"); // Paper 1.16+
+            pluginManager.registerEvents(new PaperChatListener(), plugin);
+        }
+        catch (Exception e) {
+            pluginManager.registerEvents(new PlayerChatListener(), plugin);
+        }
 
         // Player Listeners
         pluginManager.registerEvents(new ArmorStandManipulateListener(), plugin);
@@ -114,15 +141,6 @@ public final class ListenerHandler {
         pluginManager.registerEvents(new LeavesDecayListener(), plugin);
         pluginManager.registerEvents(new PortalCreateListener(), plugin);
         pluginManager.registerEvents(new StructureGrowListener(), plugin);
-
-        // Paper Listeners / Fallbacks
-        try {
-            Class.forName("net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer");
-            pluginManager.registerEvents(new PaperChatListener(), plugin);
-        }
-        catch (Exception e) {
-            pluginManager.registerEvents(new PlayerChatListener(), plugin);
-        }
 
         // Plugin channel events
         pluginManager.registerEvents(new PluginChannelListener(), plugin);
